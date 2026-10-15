@@ -53,7 +53,7 @@ h1 { font-size: 28px; line-height: 1.2; margin: 0; font-weight: 700; text-wrap: 
 .sub { flex-basis: 100%; margin: 0; color: var(--muted); }
 .tag { font-size: 12px; font-weight: 600; letter-spacing: .02em; color: var(--accent); background: var(--accent-soft); border-radius: 999px; padding: 2px 10px; }
 
-.grid { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: 16px; align-items: start; }
+.grid { display: grid; grid-template-columns: minmax(0, 380px) minmax(0, 1fr); gap: 16px; align-items: start; }
 @media (max-width: 760px) { .grid { grid-template-columns: minmax(0, 1fr); } }
 .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; min-width: 0; }
@@ -127,6 +127,45 @@ summary { cursor: pointer; font-weight: 500; min-height: 32px; }
 .notes b { color: var(--fg); font-weight: 600; font-variant-numeric: tabular-nums; }
 
 footer { margin-top: 20px; font-size: 12.5px; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
+.seg { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-bottom: 14px; }
+.seg label { display: block; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg span { display: flex; align-items: center; justify-content: center; min-height: 44px; padding: 4px 8px; text-align: center; font-size: 14px; font-weight: 500; cursor: pointer; }
+.seg input:checked + span { background: var(--accent); color: var(--surface); }
+.seg input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: -3px; }
+.detail { display: flex; flex-direction: column; gap: 10px; }
+.sec-h { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-top: 4px; }
+.sec-h h3 { margin: 0; font-size: 15px; font-weight: 600; }
+.note { margin: 0; font-size: 13px; color: var(--muted); }
+.link { background: none; border: 0; padding: 6px 0; font: inherit; font-size: 13px; color: var(--accent); cursor: pointer; text-decoration: underline; min-height: 32px; }
+.rowlist { display: flex; flex-direction: column; gap: 10px; }
+.mini { border: 1px solid var(--line); border-radius: 10px; padding: 10px; display: flex; flex-direction: column; gap: 8px; background: var(--bg); }
+.mini-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.mini-grid .wide { grid-column: 1 / -1; }
+.mini label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 500; min-width: 0; }
+.mini input, .mini select { font: inherit; font-size: 16px; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 0 10px; min-height: 44px; width: 100%; min-width: 0; font-variant-numeric: tabular-nums; }
+.mini input:focus-visible, .mini select:focus-visible, .add:focus-visible, .link:focus-visible, .del:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.mini-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 14px; }
+.mini-foot .res { font-weight: 600; font-variant-numeric: tabular-nums; }
+.del { background: none; border: 0; font: inherit; font-size: 13px; color: var(--bad); cursor: pointer; min-height: 32px; padding: 4px 0; }
+.add { font: inherit; font-size: 14px; font-weight: 500; color: var(--accent); background: var(--surface); border: 1px dashed var(--accent); border-radius: 8px; min-height: 44px; cursor: pointer; }
+.costsum { background: var(--accent-soft); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 2px; }
+.costsum .big { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.costsum .sub { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.warns { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--warn); }
+.pl { border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; background: var(--bg); }
+.pl summary { cursor: pointer; font-weight: 500; min-height: 36px; display: flex; align-items: center; list-style: none; }
+.pl summary::-webkit-details-marker { display: none; }
+.pl summary::before { content: "▸"; margin-right: 8px; color: var(--accent); transition: none; }
+.pl[open] summary::before { content: "▾"; }
+.pl-body { display: flex; flex-direction: column; gap: 8px; padding: 6px 0 4px; }
+.plabel { font-size: 13px; font-weight: 500; }
+#plPaste { font: inherit; font-size: 16px; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; width: 100%; resize: vertical; }
+#plPaste:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pl-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.pl-actions .add { padding: 0 18px; }
+.mini .tag-list { font-size: 12px; font-weight: 600; color: var(--accent); }
+.mini-foot .link { font-size: 13px; }
 </style>
 </head>
 <body>
@@ -141,11 +180,50 @@ footer { margin-top: 20px; font-size: 12.5px; color: var(--muted); display: flex
     <div class="col">
       <section class="panel" aria-labelledby="h-in">
         <h2 id="h-in">ต้นทุนเมนู</h2>
-        <p class="hint">ตัวเลขในช่องเป็นตัวอย่าง แก้ได้ทันที</p>
+        <p class="hint">เลือกวิธีกรอกต้นทุนด้านล่าง</p>
 
-        <div class="field">
+        <div class="seg" role="radiogroup" aria-label="วิธีกรอกต้นทุน">
+          <label><input type="radio" name="mode" value="detail" checked><span>คำนวณจากรายละเอียด</span></label>
+          <label><input type="radio" name="mode" value="manual"><span>กรอกต้นทุนเอง</span></label>
+        </div>
+
+        <div class="field" id="manualBox" hidden>
           <label for="cost">ต้นทุนต่อจาน/แก้ว (บาท)</label>
           <input id="cost" type="number" inputmode="decimal" step="any" min="0" value="35">
+        </div>
+
+        <div id="detailBox" class="detail">
+          <details class="pl" id="plBox">
+            <summary>รายการราคาวัตถุดิบ (<span id="plCount">0</span> รายการ)</summary>
+            <div class="pl-body">
+              <p class="note">ก๊อป 2 คอลัมน์จาก Excel (ชื่อวัตถุดิบ, ราคาต่อ กก./ลิตร/ชิ้น) มาวาง แล้วกดนำเข้า พอพิมพ์ชื่อวัตถุดิบในเมนู ระบบจะดึงราคาให้</p>
+              <label for="plPaste" class="plabel">วางรายการราคา</label>
+              <textarea id="plPaste" rows="5" placeholder="กระเทียม&#9;127.96&#10;กะทิ&#9;84.97"></textarea>
+              <div class="pl-actions"><button type="button" class="add" id="plImport">นำเข้า</button><button type="button" class="link" id="plClear">ล้างรายการราคา</button></div>
+              <p class="note" id="plMsg" aria-live="polite"></p>
+              <p class="note">เก็บในเบราว์เซอร์เครื่องนี้เท่านั้น ไม่ถูกส่งขึ้นเว็บ ถ้าเปลี่ยนเครื่องหรือเบราว์เซอร์ ต้องนำเข้าใหม่</p>
+            </div>
+          </details>
+          <datalist id="plist"></datalist>
+
+          <div class="field">
+            <label for="batch">ล็อตนี้ทำได้กี่จาน</label>
+            <input id="batch" type="number" inputmode="decimal" step="any" min="0" value="10">
+            <span class="note">ใส่ปริมาณวัตถุดิบเป็นของทั้งล็อต ถ้าอยากใส่ต่อ 1 จาน ให้ตั้งตรงนี้เป็น 1</span>
+          </div>
+
+          <div class="sec-h"><h3>วัตถุดิบ (ทั้งล็อต)</h3><button type="button" class="link" id="clearAll">ล้างตัวอย่าง</button></div>
+          <p class="note">ต้นทุน = ราคา × ปริมาณที่ใช้ ตัวอย่างคือไก่ทอด ตัวเลขเป็นค่าสมมติ</p>
+          <div id="ingList" class="rowlist"></div>
+          <button type="button" class="add" id="addIng">+ เพิ่มวัตถุดิบ</button>
+
+          <div class="sec-h"><h3>ค่าใช้จ่ายอื่น</h3></div>
+          <p class="note">ค่าไฟ ค่าน้ำ ค่าแรง ค่าบรรจุภัณฑ์ ฯลฯ เลือกว่าคิดต่อจานหรือต่อล็อต</p>
+          <div id="othList" class="rowlist"></div>
+          <button type="button" class="add" id="addOth">+ เพิ่มค่าใช้จ่าย</button>
+
+          <div class="costsum" id="costSum" aria-live="polite"></div>
+          <ul class="warns" id="costWarn"></ul>
         </div>
         <div class="field">
           <label for="cat">ประเภทเมนู</label>
@@ -178,7 +256,7 @@ footer { margin-top: 20px; font-size: 12.5px; color: var(--muted); display: flex
             <div class="field">
               <label for="oh">ต้นทุนแฝง (% บวกเพิ่มจากต้นทุนวัตถุดิบ)</label>
               <input id="oh" type="number" inputmode="decimal" step="any" min="0" value="0">
-              <span class="hint" style="margin:0">เช่น บรรจุภัณฑ์ ของเสีย ค่าแรงต่อจาน</span>
+              <span class="hint" style="margin:0">ใช้กับของเสีย/สูญเสียจากการทำ ถ้าใส่ค่าแรงหรือบรรจุภัณฑ์ในรายการด้านบนแล้ว ไม่ต้องใส่ซ้ำ</span>
             </div>
             <div>
               <label class="check"><input id="vatOn" type="checkbox"> ราคาเมนูรวม VAT</label>
@@ -259,8 +337,8 @@ footer { margin-top: 20px; font-size: 12.5px; color: var(--muted); display: flex
     var del = $('delOn').checked ? num('delPct') / 100 : 0;
     if (del >= 0.9) del = 0;
     return {
-      cost: num('cost'),
-      ceff: num('cost') * (1 + num('oh') / 100),
+      cost: baseCost(),
+      ceff: baseCost() * (1 + num('oh') / 100),
       vat: $('vatOn').checked ? num('vatPct') / 100 : 0,
       del: del,
       vatOn: $('vatOn').checked,
@@ -355,6 +433,198 @@ footer { margin-top: 20px; font-size: 12.5px; color: var(--muted); display: flex
     nt.innerHTML = items.join('');
   }
 
+  // ---------- ต้นทุนแบบละเอียด (ตามฟอร์ม Excel: ราคา × ปริมาณ ÷ จำนวนจานต่อล็อต) ----------
+  var mode = 'detail';
+  var ings = [{ name: 'ไก่ (ตัวอย่าง)', unit: 'pck', price: '120', pcsKg: '8', qty: '40', fromList: false }];
+  var oths = [
+    { name: 'ค่าไฟ', amount: '20', basis: 'batch' },
+    { name: 'ค่าน้ำ', amount: '5', basis: 'batch' },
+    { name: 'ค่าทำ (แรงงาน)', amount: '50', basis: 'batch' }
+  ];
+  var UNITS = {
+    g:   { label: 'กรัม / มล.', price: 'ราคา (บาท ต่อ กก./ลิตร)', qty: 'ปริมาณที่ใช้ (กรัม/มล.)' },
+    pc:  { label: 'ชิ้น (ราคาต่อชิ้น)', price: 'ราคา (บาท ต่อชิ้น)', qty: 'จำนวนที่ใช้ (ชิ้น)' },
+    pck: { label: 'ชิ้น (ซื้อเป็น กก.)', price: 'ราคา (บาท ต่อ กก.)', qty: 'จำนวนที่ใช้ (ชิ้น)' }
+  };
+  var PL_KEY = 'pricing.priceList.v1', pl = {};
+  function plLoad() { try { var t = localStorage.getItem(PL_KEY); pl = t ? JSON.parse(t) : {}; } catch (e) { pl = {}; } }
+  function plSave() { try { localStorage.setItem(PL_KEY, JSON.stringify(pl)); } catch (e) {} }
+  function plRender() {
+    var keys = Object.keys(pl);
+    $('plCount').textContent = keys.length;
+    $('plist').innerHTML = keys.map(function (k) { return '<option value="' + esc(k) + '"></option>'; }).join('');
+  }
+  function plParse(text) {
+    var added = 0, skipped = 0;
+    text.split(/\r?\n/).forEach(function (line) {
+      line = line.trim();
+      if (!line) return;
+      var parts = line.indexOf('\t') >= 0 ? line.split('\t') : (line.indexOf(',') >= 0 ? line.split(',') : line.split(/\s{2,}/));
+      if (parts.length < 2) {
+        var m = line.match(/^(.*\S)\s+(-?[\d.,]+)$/);
+        if (!m) { skipped++; return; }
+        parts = [m[1], m[2]];
+      }
+      var price = parseFloat(String(parts[parts.length - 1]).replace(/,/g, '').replace(/"/g, ''));
+      var name = parts.slice(0, -1).join(' ').replace(/"/g, '').trim();
+      if (!name || !isFinite(price) || price < 0) { skipped++; return; }
+      pl[name] = price; added++;
+    });
+    return { added: added, skipped: skipped };
+  }
+
+  function n0(v) { var x = parseFloat(v); return isFinite(x) ? x : 0; }
+  function esc(t) { return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
+  function servings() { return n0($('batch').value); }
+  // ต้นทุนวัตถุดิบแถวนี้ "ทั้งล็อต"
+  function ingBatch(r) {
+    var p = n0(r.price), q = n0(r.qty);
+    if (r.unit === 'g') return p * q / 1000;
+    if (r.unit === 'pc') return p * q;
+    var k = n0(r.pcsKg);
+    return k > 0 ? p / k * q : 0;
+  }
+  function ingCost(r) { var sv = servings(); return sv > 0 ? ingBatch(r) / sv : 0; }
+  function othCost(r) {
+    if (r.basis === 'batch') { var sv = servings(); return sv > 0 ? n0(r.amount) / sv : 0; }
+    return n0(r.amount);
+  }
+  function sums() {
+    var a = 0, b = 0;
+    ings.forEach(function (r) { a += ingCost(r); });
+    oths.forEach(function (r) { b += othCost(r); });
+    return { ing: a, oth: b, total: a + b };
+  }
+  function baseCost() { return mode === 'manual' ? num('cost') : sums().total; }
+  function f2(n) { return (Math.round(n * 100) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function blankIng() { return { name: '', unit: 'g', price: '', pcsKg: '', qty: '', fromList: false }; }
+
+  function renderIngs() {
+    $('ingList').innerHTML = ings.map(function (r, i) {
+      var u = UNITS[r.unit] || UNITS.g;
+      var pre = 'data-l="ing" data-i="' + i + '"';
+      return '<div class="mini"><div class="mini-grid">' +
+        '<label class="wide">ชื่อวัตถุดิบ<input type="text" list="plist" autocomplete="off" ' + pre + ' data-k="name" value="' + esc(r.name) + '" placeholder="พิมพ์ชื่อ หรือเลือกจากรายการราคา"></label>' +
+        '<label class="wide">หน่วยที่ใช้<select ' + pre + ' data-k="unit">' + Object.keys(UNITS).map(function (k) { return '<option value="' + k + '"' + (k === r.unit ? ' selected' : '') + '>' + UNITS[k].label + '</option>'; }).join('') + '</select></label>' +
+        '<label' + (r.unit === 'pck' ? '' : ' class="wide"') + '><span>' + u.price + ' <span class="tag-list" id="ing-fl-' + i + '">' + (r.fromList ? '· จากรายการ' : '') + '</span></span><input type="number" inputmode="decimal" min="0" step="any" ' + pre + ' data-k="price" value="' + esc(r.price) + '" placeholder="0"></label>' +
+        (r.unit === 'pck' ? '<label>ซื้อ 1 กก. ได้กี่ชิ้น<input type="number" inputmode="decimal" min="0" step="any" ' + pre + ' data-k="pcsKg" value="' + esc(r.pcsKg) + '" placeholder="เช่น 8"></label>' : '') +
+        '<label class="wide">' + u.qty + '<input type="number" inputmode="decimal" min="0" step="any" ' + pre + ' data-k="qty" value="' + esc(r.qty) + '" placeholder="0"></label>' +
+        '</div><div class="mini-foot"><span>ต้นทุนทั้งล็อต <span class="res" id="ing-res-' + i + '">' + f2(ingBatch(r)) + '</span> บาท</span>' +
+        '<span><button type="button" class="link" id="ing-save-' + i + '" data-save="' + i + '" hidden>บันทึกราคานี้ลงรายการ</button> ' +
+        '<button type="button" class="del" data-del="ing" data-i="' + i + '" aria-label="ลบวัตถุดิบ ' + (i + 1) + '">ลบ</button></span></div></div>';
+    }).join('');
+  }
+  function renderOths() {
+    $('othList').innerHTML = oths.map(function (r, i) {
+      var pre = 'data-l="oth" data-i="' + i + '"';
+      return '<div class="mini"><div class="mini-grid">' +
+        '<label class="wide">รายการ<input type="text" ' + pre + ' data-k="name" value="' + esc(r.name) + '" placeholder="เช่น ค่าไฟ"></label>' +
+        '<label>จำนวนเงิน (บาท)<input type="number" inputmode="decimal" min="0" step="any" ' + pre + ' data-k="amount" value="' + esc(r.amount) + '" placeholder="0"></label>' +
+        '<label>คิดแบบ<select ' + pre + ' data-k="basis">' +
+        '<option value="serving"' + (r.basis === 'serving' ? ' selected' : '') + '>ต่อจาน</option>' +
+        '<option value="batch"' + (r.basis === 'batch' ? ' selected' : '') + '>ต่อล็อต</option></select></label>' +
+        '</div><div class="mini-foot"><span>เฉลี่ย <span class="res" id="oth-res-' + i + '">' + f2(othCost(r)) + '</span> บาท/จาน</span>' +
+        '<button type="button" class="del" data-del="oth" data-i="' + i + '" aria-label="ลบรายการ ' + (i + 1) + '">ลบ</button></div></div>';
+    }).join('');
+  }
+  function refreshCost() {
+    ings.forEach(function (r, i) {
+      var e = $('ing-res-' + i); if (e) e.textContent = f2(ingBatch(r));
+      var sv = $('ing-save-' + i);
+      if (sv) { var nm = String(r.name || '').trim(); sv.hidden = !(nm && n0(r.price) > 0 && pl[nm] !== n0(r.price)); }
+    });
+    oths.forEach(function (r, i) { var e = $('oth-res-' + i); if (e) e.textContent = f2(othCost(r)); });
+    var t = sums(), sv0 = servings();
+    var pct = function (v) { return t.total > 0 ? ' (' + Math.round(v / t.total * 100) + '%)' : ''; };
+    $('costSum').innerHTML = '<span class="sub">ต้นทุนต่อจาน (ล็อตละ ' + f2(t.total * sv0) + ' บาท ÷ ' + (Math.round(sv0 * 100) / 100) + ' จาน)</span><span class="big">' + f2(t.total) + ' บาท</span>' +
+      '<span class="sub">วัตถุดิบ ' + f2(t.ing) + pct(t.ing) + ' · ค่าใช้จ่ายอื่น ' + f2(t.oth) + pct(t.oth) + '</span>';
+    var w = [];
+    if (sv0 <= 0) w.push('ใส่จำนวนจานต่อล็อต (ต้องมากกว่า 0) ไม่เช่นนั้นคำนวณต้นทุนต่อจานไม่ได้');
+    ings.forEach(function (r, i) {
+      if (n0(r.price) > 0 && n0(r.qty) <= 0) w.push('วัตถุดิบ ' + (i + 1) + ': ใส่ปริมาณที่ใช้ด้วย');
+      else if (r.unit === 'pck' && n0(r.price) > 0 && n0(r.pcsKg) <= 0) w.push('วัตถุดิบ ' + (i + 1) + ': ใส่จำนวนชิ้นต่อ 1 กก. ด้วย');
+      else if (n0(r.qty) > 0 && n0(r.price) <= 0) w.push('วัตถุดิบ ' + (i + 1) + ': ยังไม่มีราคา');
+    });
+    $('costWarn').innerHTML = w.map(function (x) { return '<li>' + x + '</li>'; }).join('');
+    renderAll();
+  }
+  function onListInput(e) {
+    var t = e.target, l = t.getAttribute('data-l');
+    if (!l) return;
+    var i = parseInt(t.getAttribute('data-i'), 10), k = t.getAttribute('data-k');
+    var arr = l === 'ing' ? ings : oths;
+    arr[i][k] = t.value;
+    if (l === 'ing') {
+      if (k === 'name') {
+        var nm = t.value.trim();
+        if (Object.prototype.hasOwnProperty.call(pl, nm)) {
+          arr[i].price = String(pl[nm]); arr[i].fromList = true;
+          var pi = document.querySelector('[data-l="ing"][data-i="' + i + '"][data-k="price"]');
+          if (pi) pi.value = arr[i].price;
+        } else { arr[i].fromList = false; }
+        var fl = $('ing-fl-' + i); if (fl) fl.textContent = arr[i].fromList ? '· จากรายการ' : '';
+      } else if (k === 'price') {
+        arr[i].fromList = false;
+        var fl2 = $('ing-fl-' + i); if (fl2) fl2.textContent = '';
+      } else if (k === 'unit') {
+        renderIngs();
+        var back = document.querySelector('[data-l="ing"][data-i="' + i + '"][data-k="unit"]'); if (back) back.focus();
+      }
+    }
+    refreshCost();
+  }
+  function onListClick(e) {
+    var d = e.target.closest('[data-del]');
+    if (d) {
+      var arr = d.getAttribute('data-del') === 'ing' ? ings : oths;
+      arr.splice(parseInt(d.getAttribute('data-i'), 10), 1);
+      renderIngs(); renderOths(); refreshCost();
+      return;
+    }
+    var sv = e.target.closest('[data-save]');
+    if (sv) {
+      var r = ings[parseInt(sv.getAttribute('data-save'), 10)];
+      pl[String(r.name).trim()] = n0(r.price); r.fromList = true;
+      plSave(); plRender(); renderIngs(); refreshCost();
+    }
+  }
+  $('ingList').addEventListener('input', onListInput);
+  $('othList').addEventListener('input', onListInput);
+  $('ingList').addEventListener('click', onListClick);
+  $('othList').addEventListener('click', onListClick);
+  $('batch').addEventListener('input', refreshCost);
+  $('addIng').addEventListener('click', function () { ings.push(blankIng()); renderIngs(); refreshCost(); });
+  $('addOth').addEventListener('click', function () { oths.push({ name: '', amount: '', basis: 'batch' }); renderOths(); refreshCost(); });
+  $('clearAll').addEventListener('click', function () {
+    ings = [blankIng()];
+    oths = [{ name: 'ค่าไฟ', amount: '', basis: 'batch' }, { name: 'ค่าน้ำ', amount: '', basis: 'batch' }, { name: 'ค่าทำ (แรงงาน)', amount: '', basis: 'batch' }];
+    $('price').value = '';
+    renderIngs(); renderOths(); refreshCost();
+  });
+  $('plImport').addEventListener('click', function () {
+    var r = plParse($('plPaste').value);
+    plSave(); plRender();
+    $('plMsg').textContent = r.added ? 'นำเข้า ' + r.added + ' รายการ' + (r.skipped ? ' · ข้าม ' + r.skipped + ' แถวที่อ่านไม่ได้ (เช่น หัวตาราง)' : '') : 'ไม่พบรายการที่นำเข้าได้ ต้องมีชื่อและราคา คั่นด้วยแท็บหรือคอมมา';
+    if (r.added) $('plPaste').value = '';
+    // เติมราคาให้แถวที่ชื่อตรงกับรายการและยังไม่ได้กรอกราคา
+    ings.forEach(function (row) { var nm = String(row.name).trim(); if (!n0(row.price) && Object.prototype.hasOwnProperty.call(pl, nm)) { row.price = String(pl[nm]); row.fromList = true; } });
+    renderIngs(); refreshCost();
+  });
+  $('plClear').addEventListener('click', function () {
+    pl = {}; plSave(); plRender(); $('plMsg').textContent = 'ล้างรายการราคาแล้ว';
+    ings.forEach(function (row) { row.fromList = false; });
+    renderIngs(); refreshCost();
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('input[name="mode"]'), function (r) {
+    r.addEventListener('change', function () {
+      mode = this.value;
+      $('manualBox').hidden = mode !== 'manual';
+      $('detailBox').hidden = mode !== 'detail';
+      renderAll();
+    });
+  });
+  plLoad(); plRender();
+
   function renderAll() { renderRef(); renderRows(); renderFinal(); }
 
   $('rows').addEventListener('click', function (e) {
@@ -383,7 +653,12 @@ footer { margin-top: 20px; font-size: 12.5px; color: var(--muted); display: flex
   ['cost', 'round', 'oh', 'vatPct', 'delPct', 'price'].forEach(function (id) { $(id).addEventListener('input', renderAll); });
   $('round').addEventListener('change', renderAll);
 
-  renderAll();
+  renderIngs(); renderOths();
+  (function () {
+    var c0 = ctx();
+    $('price').value = String(roundUp(c0.ceff / (1 - target / 100) * (1 + c0.vat)) || '');
+  })();
+  refreshCost();
 })();
 </script>
 </body>
