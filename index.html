@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="เครื่องมือช่วยตั้งราคาเมนู: กรอกต้นทุน เลือกเป้ากำไร ดูราคาแนะนำและกำไรย้อนกลับ">
+<title>ช่วยตั้งราคา</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: ซ้าย = กรอกต้นทุน/ตัวเลือก, ขวา = ตัวเลือกราคา + ราคาที่จะขายจริง; มือถือเรียงลงทีละส่วน */
+:root {
+  --bg: #F2F6F4;
+  --surface: #FFFFFF;
+  --fg: #13201B;
+  --muted: #566861;
+  --line: #D6E0DB;
+  --accent: #0E6B56;
+  --accent-soft: #E0F0EA;
+  --band: #A5D6C7;
+  --track: #E3EAE7;
+  --good: #1D7A44;  --good-bg: #E2F3E8;
+  --warn: #8F5A00;  --warn-bg: #FBEFD2;
+  --bad: #B02E2E;   --bad-bg: #FBE3E3;
+  --font: "IBM Plex Sans Thai", "Noto Sans Thai", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E1613; --surface: #16211D; --fg: #E6EFEB; --muted: #9AAFA7; --line: #2A3A35;
+    --accent: #4FC3A5; --accent-soft: #1A3A32; --band: #2D6B5A; --track: #26332F;
+    --good: #5CC98A; --good-bg: #17332346; --warn: #E3B04B; --warn-bg: #3A2F14; --bad: #F08A8A; --bad-bg: #3B1C1C;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E1613; --surface: #16211D; --fg: #E6EFEB; --muted: #9AAFA7; --line: #2A3A35;
+  --accent: #4FC3A5; --accent-soft: #1A3A32; --band: #2D6B5A; --track: #26332F;
+  --good: #5CC98A; --good-bg: #173323; --warn: #E3B04B; --warn-bg: #3A2F14; --bad: #F08A8A; --bad-bg: #3B1C1C;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0;
+  background: var(--bg); color: var(--fg); font-family: var(--font); font-size: 15px; line-height: 1.55;
+  padding-block: 20px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1020px; margin: 0 auto; }
+header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; margin-bottom: 18px; }
+h1 { font-size: 28px; line-height: 1.2; margin: 0; font-weight: 700; text-wrap: balance; }
+.sub { flex-basis: 100%; margin: 0; color: var(--muted); }
+.tag { font-size: 12px; font-weight: 600; letter-spacing: .02em; color: var(--accent); background: var(--accent-soft); border-radius: 999px; padding: 2px 10px; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 760px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; min-width: 0; }
+h2 { font-size: 17px; margin: 0 0 4px; font-weight: 600; }
+.hint { color: var(--muted); font-size: 13px; margin: 0 0 12px; }
+
+.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.field:last-child { margin-bottom: 0; }
+label, .lbl { font-weight: 500; font-size: 14px; }
+input[type=number], select {
+  font: inherit; font-size: 16px; color: var(--fg); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 8px; padding: 0 12px; min-height: 44px; width: 100%;
+}
+input[type=number] { font-variant-numeric: tabular-nums; }
+input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ref { font-size: 13px; color: var(--muted); background: var(--accent-soft); border-radius: 8px; padding: 8px 10px; margin: 0 0 14px; }
+.ref b { color: var(--fg); font-weight: 600; }
+
+details { border-top: 1px solid var(--line); padding-top: 12px; margin-top: 4px; }
+summary { cursor: pointer; font-weight: 500; min-height: 32px; }
+.extras { display: flex; flex-direction: column; gap: 14px; padding-top: 12px; }
+.check { display: flex; align-items: center; gap: 10px; min-height: 36px; font-weight: 500; }
+.check input { width: 20px; height: 20px; accent-color: var(--accent); flex: none; }
+.indent { padding-left: 30px; }
+
+.rows { display: flex; flex-direction: column; gap: 8px; }
+.row {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0 14px; align-items: center;
+  width: 100%; text-align: left; font: inherit; color: inherit; background: var(--surface);
+  border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; min-height: 56px; cursor: pointer;
+}
+.row[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.row .m { font-size: 22px; font-weight: 700; color: var(--accent); min-width: 3.4ch; font-variant-numeric: tabular-nums; }
+.row .line1 { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.row .price { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.row .detail { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.badge { font-size: 12px; font-weight: 600; border-radius: 999px; padding: 1px 8px; background: var(--accent-soft); color: var(--accent); }
+.row[aria-pressed="true"] .badge { background: var(--surface); }
+.empty { color: var(--muted); padding: 8px 0; }
+
+.pricebox { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: end; margin-bottom: 16px; }
+.pricebox .field { margin: 0; flex: 1 1 180px; }
+.status { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; padding: 8px 12px; flex: 1 1 200px; }
+.status .ico { font-weight: 700; width: 20px; height: 20px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 12px; background: currentColor; flex: none; }
+.status .ico i { color: var(--surface); font-style: normal; }
+.status.good { color: var(--good); background: var(--good-bg); }
+.status.warn { color: var(--warn); background: var(--warn-bg); }
+.status.bad { color: var(--bad); background: var(--bad-bg); }
+.status.none { color: var(--muted); background: var(--track); }
+.status span.t { color: var(--fg); }
+
+.metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 8px; }
+.metric .k { font-size: 13px; color: var(--muted); }
+.metric .v { font-size: 26px; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.metric .u { font-size: 14px; font-weight: 500; color: var(--muted); }
+@media (max-width: 420px) { .metric .v { font-size: 22px; } }
+
+.scalewrap { padding: 0 16px; }
+.scale { position: relative; height: 10px; background: var(--track); border-radius: 5px; margin: 20px 0 26px; }
+.scale .band { position: absolute; top: 0; bottom: 0; background: var(--band); border-radius: 5px; }
+.scale .tgt { position: absolute; top: -4px; width: 2px; height: 18px; background: var(--accent); transform: translateX(-1px); }
+.scale .mark { position: absolute; top: -6px; width: 4px; height: 22px; background: var(--fg); border-radius: 2px; transform: translateX(-2px); }
+.scale .tick { position: absolute; top: 16px; font-size: 11px; color: var(--muted); transform: translateX(-50%); font-variant-numeric: tabular-nums; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12px; color: var(--muted); margin: 0 0 12px; }
+.legend span::before { content: ""; display: inline-block; vertical-align: middle; margin-right: 6px; }
+.legend .l-band::before { width: 16px; height: 8px; background: var(--band); border-radius: 4px; }
+.legend .l-tgt::before { width: 2px; height: 12px; background: var(--accent); }
+.legend .l-mark::before { width: 4px; height: 14px; background: var(--fg); border-radius: 2px; }
+.notes { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+.notes li { color: var(--muted); }
+.notes b { color: var(--fg); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+footer { margin-top: 20px; font-size: 12.5px; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>ช่วยตั้งราคา</h1>
+    <p class="sub">กรอกต้นทุน เลือกเป้ากำไร แล้วดูว่าควรขายราคาเท่าไร</p>
+  </header>
+
+  <div class="grid">
+    <div class="col">
+      <section class="panel" aria-labelledby="h-in">
+        <h2 id="h-in">ต้นทุนเมนู</h2>
+        <p class="hint">ตัวเลขในช่องเป็นตัวอย่าง แก้ได้ทันที</p>
+
+        <div class="field">
+          <label for="cost">ต้นทุนต่อจาน/แก้ว (บาท)</label>
+          <input id="cost" type="number" inputmode="decimal" step="any" min="0" value="35">
+        </div>
+        <div class="field">
+          <label for="cat">ประเภทเมนู</label>
+          <select id="cat">
+            <option value="main">อาหารจานหลัก</option>
+            <option value="starter">ของทานเล่น / เรียกน้ำย่อย</option>
+            <option value="drink">เครื่องดื่มทั่วไป</option>
+            <option value="coffee">กาแฟ</option>
+            <option value="other">เบเกอรี่ / ของหวาน / ติ่มซำ / น้ำจิ้ม</option>
+          </select>
+        </div>
+        <p class="ref" id="ref"></p>
+
+        <div class="field">
+          <label for="round">ปัดราคา</label>
+          <select id="round">
+            <option value="5" selected>ปัดขึ้นเป็นหลัก 5 บาท</option>
+            <option value="9">ลงท้ายด้วย 9</option>
+            <option value="1">ปัดขึ้นเป็นบาทเต็ม</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="custom">เป้ากำไรที่อยากลอง (%) <span style="color:var(--muted);font-weight:400">ไม่บังคับ</span></label>
+          <input id="custom" type="number" inputmode="decimal" step="any" min="1" max="95" placeholder="เช่น 68">
+        </div>
+
+        <details>
+          <summary>ตัวเลือกเสริม</summary>
+          <div class="extras">
+            <div class="field">
+              <label for="oh">ต้นทุนแฝง (% บวกเพิ่มจากต้นทุนวัตถุดิบ)</label>
+              <input id="oh" type="number" inputmode="decimal" step="any" min="0" value="0">
+              <span class="hint" style="margin:0">เช่น บรรจุภัณฑ์ ของเสีย ค่าแรงต่อจาน</span>
+            </div>
+            <div>
+              <label class="check"><input id="vatOn" type="checkbox"> ราคาเมนูรวม VAT</label>
+              <div class="field indent" id="vatBox" hidden>
+                <label for="vatPct">อัตรา VAT (%)</label>
+                <input id="vatPct" type="number" inputmode="decimal" step="any" min="0" value="7">
+                <span class="hint" style="margin:0">ตรวจอัตราที่ใช้จริงกับนักบัญชี</span>
+              </div>
+            </div>
+            <div>
+              <label class="check"><input id="delOn" type="checkbox"> ขายผ่านเดลิเวอรี่</label>
+              <div class="field indent" id="delBox" hidden>
+                <label for="delPct">ค่าคอมมิชชั่น (%)</label>
+                <input id="delPct" type="number" inputmode="decimal" step="any" min="0" max="80" placeholder="กรอกตามสัญญาของร้าน">
+              </div>
+            </div>
+          </div>
+        </details>
+      </section>
+    </div>
+
+    <div class="col">
+      <section class="panel" aria-labelledby="h-rows">
+        <h2 id="h-rows">เลือกเป้ากำไร</h2>
+        <p class="hint" id="rowsHint">แตะแถวเพื่อใช้ราคานั้น</p>
+        <div class="rows" id="rows"></div>
+      </section>
+
+      <section class="panel" aria-labelledby="h-final">
+        <h2 id="h-final">ราคาที่ฉันจะขายจริง</h2>
+        <p class="hint" id="finalHint">พิมพ์ราคา แล้วดูกำไรย้อนกลับ</p>
+        <div class="pricebox">
+          <div class="field">
+            <label for="price">ราคาขาย (บาท)</label>
+            <input id="price" type="number" inputmode="decimal" step="any" min="0" value="109">
+          </div>
+          <div class="status none" id="status" role="status"></div>
+        </div>
+        <div class="metrics" id="metrics"></div>
+        <div class="scalewrap"><div class="scale" id="scale"></div></div>
+        <p class="legend" id="legend"></p>
+        <ul class="notes" id="notes"></ul>
+      </section>
+    </div>
+  </div>
+
+  <footer>
+    <span>ช่วงอ้างอิงมาจากรายงานอุตสาหกรรมต่างประเทศ (Baker Tilly, Johnson &amp; Wales, Owner.com, Supy) ไม่ใช่ข้อมูลร้านไทย ใช้เป็นจุดตั้งต้น</span>
+    <span>กำไรในหน้านี้ = กำไรขั้นต้นเทียบต้นทุนเมนู ยังไม่หักค่าแรง ค่าเช่า ค่าน้ำไฟ</span>
+    <span>ข้อมูลที่กรอกอยู่ในเบราว์เซอร์ของคุณเท่านั้น ไม่ถูกส่งหรือบันทึกที่ไหน</span>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var CATS = {
+    main:    { name: 'อาหารจานหลัก', lo: 65, hi: 72 },
+    starter: { name: 'ของทานเล่น / เรียกน้ำย่อย', lo: 65, hi: 75 },
+    drink:   { name: 'เครื่องดื่มทั่วไป', lo: 75, hi: 85 },
+    coffee:  { name: 'กาแฟ', lo: 80, hi: 85 },
+    other:   { name: 'หมวดนี้', lo: null, hi: null }
+  };
+  var BASE = [50, 60, 65, 70, 75, 80, 85];
+  var target = 70;
+
+  function num(id) { var v = parseFloat($(id).value); return isFinite(v) ? v : 0; }
+  function f0(n) { return Math.round(n).toLocaleString('en-US'); }
+  function f1(n) { return (Math.round(n * 10) / 10).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 }); }
+
+  function roundUp(p) {
+    var m = $('round').value;
+    if (m === '5') return Math.ceil(p / 5 - 1e-9) * 5;
+    if (m === '9') return Math.ceil((p + 1) / 10 - 1e-9) * 10 - 1;
+    return Math.ceil(p - 1e-9);
+  }
+  function ctx() {
+    var del = $('delOn').checked ? num('delPct') / 100 : 0;
+    if (del >= 0.9) del = 0;
+    return {
+      cost: num('cost'),
+      ceff: num('cost') * (1 + num('oh') / 100),
+      vat: $('vatOn').checked ? num('vatPct') / 100 : 0,
+      del: del,
+      vatOn: $('vatOn').checked,
+      delOn: $('delOn').checked
+    };
+  }
+  function metrics(menu, c) {
+    var net = menu / (1 + c.vat);
+    var profit = net - c.ceff;
+    return { net: net, profit: profit, margin: net > 0 ? profit / net * 100 : 0, costPct: net > 0 ? c.ceff / net * 100 : 0 };
+  }
+  function pos(v) { return Math.min(100, Math.max(0, (v - 30) / 60 * 100)); }
+  function cat() { return CATS[$('cat').value]; }
+
+  function renderRef() {
+    var c = cat();
+    var el = $('ref');
+    if (c.lo === null) {
+      el.innerHTML = 'ยังไม่มีแหล่งอ้างอิงที่เชื่อถือได้สำหรับหมวดนี้ <b>ตั้งเป้าเองจากข้อมูลร้าน</b>';
+    } else {
+      el.innerHTML = 'ช่วงอ้างอิงกำไร <b>' + c.lo + '–' + c.hi + '%</b> (ต้นทุน ' + (100 - c.hi) + '–' + (100 - c.lo) + '% ของราคาขาย) · ค่าเฉลี่ยต่างประเทศ';
+    }
+  }
+
+  function renderRows() {
+    var c = ctx(), cg = cat();
+    var list = BASE.slice();
+    var cu = num('custom');
+    if (cu >= 1 && cu <= 95 && list.indexOf(cu) < 0) list.push(cu);
+    list.sort(function (a, b) { return a - b; });
+    var box = $('rows');
+    $('rowsHint').textContent = c.vatOn ? 'แตะแถวเพื่อใช้ราคานั้น · ราคารวม VAT แล้ว' : 'แตะแถวเพื่อใช้ราคานั้น';
+    if (c.ceff <= 0) { box.innerHTML = '<p class="empty">กรอกต้นทุนเพื่อดูราคาแนะนำ</p>'; return; }
+    box.innerHTML = list.map(function (m) {
+      var rec = c.ceff / (1 - m / 100) * (1 + c.vat);
+      var rd = roundUp(rec);
+      var x = metrics(rd, c);
+      var inRange = cg.lo !== null && x.margin >= cg.lo - 0.05 && x.margin <= cg.hi + 0.05;
+      return '<button type="button" class="row" data-m="' + m + '" data-p="' + rd + '" aria-pressed="' + (m === target) + '">' +
+        '<span class="m">' + (Math.round(m * 10) / 10) + '%</span>' +
+        '<span><span class="line1"><span class="price">' + f0(rd) + ' บาท</span>' + (inRange ? '<span class="badge">อยู่ในช่วงอ้างอิง</span>' : '') + '</span>' +
+        '<span class="detail">ตามสูตร ' + f1(rec) + ' · กำไรจริง ' + f1(x.margin) + '% (' + f0(x.profit) + ' บาท) · ต้นทุน ' + f1(x.costPct) + '%</span></span>' +
+        '</button>';
+    }).join('');
+  }
+
+  function renderFinal() {
+    var c = ctx(), cg = cat();
+    var p = num('price');
+    var st = $('status'), mt = $('metrics'), sc = $('scale'), nt = $('notes'), lg = $('legend');
+    if (c.ceff <= 0 || p <= 0) {
+      st.className = 'status none';
+      st.innerHTML = '<span class="t">กรอกต้นทุนและราคาขายเพื่อดูกำไร</span>';
+      mt.innerHTML = ''; sc.innerHTML = ''; nt.innerHTML = ''; lg.innerHTML = '';
+      return;
+    }
+    var x = metrics(p, c);
+    var cls, ico, txt;
+    var gap = target - x.margin;
+    if (x.margin <= 0) { cls = 'bad'; ico = '×'; txt = 'ขาดทุน ราคาต่ำกว่าต้นทุน'; }
+    else if (gap <= 0.05) { cls = 'good'; ico = '✓'; txt = 'ถึงเป้า ' + (Math.round(target * 10) / 10) + '%'; }
+    else if (gap <= 5) { cls = 'warn'; ico = '!'; txt = 'ต่ำกว่าเป้า ' + f1(gap) + ' จุด'; }
+    else { cls = 'bad'; ico = '!'; txt = 'ต่ำกว่าเป้ามาก (' + f1(gap) + ' จุด)'; }
+    st.className = 'status ' + cls;
+    st.innerHTML = '<span class="ico"><i>' + ico + '</i></span><span class="t">' + txt + '</span>';
+
+    mt.innerHTML =
+      '<div class="metric"><div class="k">กำไร</div><div class="v">' + f1(x.margin) + '<span class="u"> %</span></div></div>' +
+      '<div class="metric"><div class="k">กำไรต่อจาน</div><div class="v">' + f0(x.profit) + '<span class="u"> บาท</span></div></div>' +
+      '<div class="metric"><div class="k">ต้นทุน</div><div class="v">' + f1(x.costPct) + '<span class="u"> %</span></div></div>';
+
+    var band = cg.lo !== null ? '<div class="band" style="left:' + pos(cg.lo) + '%;width:' + (pos(cg.hi) - pos(cg.lo)) + '%"></div>' : '';
+    var ticks = [30, 50, 70, 90].map(function (t) { return '<span class="tick" style="left:' + pos(t) + '%">' + t + '%</span>'; }).join('');
+    sc.innerHTML = band + '<div class="tgt" style="left:' + pos(target) + '%"></div><div class="mark" style="left:' + pos(x.margin) + '%"></div>' + ticks;
+    sc.setAttribute('role', 'img');
+    sc.setAttribute('aria-label', 'กำไร ' + f1(x.margin) + ' เปอร์เซ็นต์ เป้า ' + target + ' เปอร์เซ็นต์');
+    lg.innerHTML = (cg.lo !== null ? '<span class="l-band">ช่วงอ้างอิง</span>' : '') + '<span class="l-tgt">เป้า</span><span class="l-mark">ราคานี้</span>';
+
+    var items = [];
+    if (cg.lo !== null) {
+      var rt;
+      if (x.margin < cg.lo - 0.05) rt = 'ต่ำกว่าช่วงอ้างอิงของ' + cg.name + ' (' + cg.lo + '–' + cg.hi + '%)';
+      else if (x.margin > cg.hi + 0.05) rt = 'สูงกว่าช่วงอ้างอิง (' + cg.lo + '–' + cg.hi + '%) เทียบราคาตลาดว่าลูกค้ายอมจ่ายไหม';
+      else rt = 'อยู่ในช่วงอ้างอิงของ' + cg.name + ' (' + cg.lo + '–' + cg.hi + '%)';
+      items.push('<li>' + rt + '</li>');
+    }
+    if (c.vatOn) items.push('<li>ราคาก่อน VAT <b>' + f1(x.net) + ' บาท</b> · กำไรคิดจากราคาก่อน VAT</li>');
+    if (c.delOn) {
+      if (c.del > 0) items.push('<li>เดลิเวอรี่ ค่าคอม ' + f1(c.del * 100) + '%: ตั้ง <b>' + f0(Math.ceil(p / (1 - c.del) - 1e-9)) + ' บาท</b> จึงได้เงินเท่าราคาหน้าร้านหลังหักค่าคอม (ประมาณการ)</li>');
+      else items.push('<li>เดลิเวอรี่: กรอกค่าคอมมิชชั่นในตัวเลือกเสริมเพื่อดูราคาที่ต้องตั้ง</li>');
+    }
+    nt.innerHTML = items.join('');
+  }
+
+  function renderAll() { renderRef(); renderRows(); renderFinal(); }
+
+  $('rows').addEventListener('click', function (e) {
+    var b = e.target.closest('.row');
+    if (!b) return;
+    target = parseFloat(b.getAttribute('data-m'));
+    $('price').value = b.getAttribute('data-p');
+    renderAll();
+  });
+  $('cat').addEventListener('change', function () {
+    var c = cat();
+    if (c.lo !== null) {
+      var mid = (c.lo + c.hi) / 2, best = BASE[0];
+      BASE.forEach(function (m) { if (Math.abs(m - mid) < Math.abs(best - mid)) best = m; });
+      target = best;
+    }
+    renderAll();
+  });
+  $('custom').addEventListener('input', function () {
+    var v = num('custom');
+    if (v >= 1 && v <= 95) target = v;
+    renderAll();
+  });
+  $('vatOn').addEventListener('change', function () { $('vatBox').hidden = !this.checked; renderAll(); });
+  $('delOn').addEventListener('change', function () { $('delBox').hidden = !this.checked; renderAll(); });
+  ['cost', 'round', 'oh', 'vatPct', 'delPct', 'price'].forEach(function (id) { $(id).addEventListener('input', renderAll); });
+  $('round').addEventListener('change', renderAll);
+
+  renderAll();
+})();
+</script>
+</body>
+</html>
