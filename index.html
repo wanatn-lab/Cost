@@ -213,6 +213,13 @@ input[type=text]:focus-visible { outline: 2px solid var(--accent); outline-offse
 .btn:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
 footer { padding-bottom: 8px; }
 .pl-actions .add { width: auto; margin-top: 0; }
+.pl-list { display: flex; flex-direction: column; max-height: 220px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.pl-list:empty::before { content: "ยังไม่มีรายการ กรอกวัตถุดิบแล้วกดถัดไป ระบบจะบันทึกให้"; color: var(--muted); font-size: 13px; padding: 10px; }
+.pl-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 10px; border-top: 1px solid var(--line); font-size: 14px; }
+.pl-item:first-child { border-top: 0; }
+.pl-item .nm { min-width: 0; overflow-wrap: anywhere; } .pl-item .pr { color: var(--muted); font-size: 13px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.pl-item .del { flex: none; }
+.savemsg { margin: -4px 2px 0; color: var(--accent); }
 </style>
 </head>
 <body>
@@ -247,18 +254,20 @@ footer { padding-bottom: 8px; }
     <div id="detailBox" class="detail">
       <div class="panel">
         <div class="sec-h"><h3>วัตถุดิบ <span class="sm">(ทั้งล็อต)</span></h3><button type="button" class="link" id="clearAll">ล้างตัวอย่าง</button></div>
-        <p class="note">ตัวอย่างคือไก่ทอด ตัวเลขเป็นค่าสมมติ กด "ล้างตัวอย่าง" ก่อนใช้จริง</p>
+        <p class="note">ตัวอย่างคือไก่ทอด ตัวเลขเป็นค่าสมมติ กด "ล้างตัวอย่าง" ก่อนใช้จริง · ราคาวัตถุดิบจะถูกบันทึกไว้เองเมื่อกด "ถัดไป" เมนูหน้าพิมพ์ชื่อแล้วดึงราคามาให้</p>
         <div id="ingList" class="rowlist"></div>
         <button type="button" class="add" id="addIng">+ เพิ่มวัตถุดิบ (พิมพ์ค้นจากรายการราคา)</button>
         <details class="pl" id="plBox">
-          <summary>รายการราคาวัตถุดิบ (<span id="plCount">0</span> รายการ) · นำเข้าจาก Excel</summary>
+          <summary>ราคาวัตถุดิบที่บันทึกไว้ (<span id="plCount">0</span> รายการ) · ดู / นำเข้า / คัดลอก</summary>
           <div class="pl-body">
+            <div id="plManage" class="pl-list"></div>
+            <div class="pl-actions"><button type="button" class="link" id="plCopy">คัดลอกรายการ (ไว้วางในเครื่องอื่น)</button></div>
             <p class="note">ก๊อป 2 คอลัมน์จาก Excel (ชื่อวัตถุดิบ, ราคาต่อ กก./ลิตร/ชิ้น) มาวาง แล้วกดนำเข้า พอพิมพ์ชื่อวัตถุดิบ ระบบจะดึงราคาให้</p>
             <label for="plPaste" class="plabel">วางรายการราคา</label>
             <textarea id="plPaste" rows="5" placeholder="กระเทียม&#9;127.96&#10;กะทิ&#9;84.97"></textarea>
             <div class="pl-actions"><button type="button" class="add" id="plImport">นำเข้า</button><button type="button" class="link" id="plClear">ล้างรายการราคา</button></div>
             <p class="note" id="plMsg" aria-live="polite"></p>
-            <p class="note">เก็บในเบราว์เซอร์เครื่องนี้เท่านั้น ไม่ถูกส่งขึ้นเว็บ ถ้าเปลี่ยนเครื่องหรือเบราว์เซอร์ ต้องนำเข้าใหม่</p>
+            <p class="note">เก็บในเบราว์เซอร์เครื่องนี้เท่านั้น ไม่ถูกส่งขึ้นเว็บ ถ้าเปลี่ยนเครื่องหรือเบราว์เซอร์ ให้กด "คัดลอกรายการ" แล้ววางในช่องด้านล่างที่เครื่องใหม่ (หน่วยจะไม่ถูกย้ายไปด้วย) ถ้าล้างข้อมูลเบราว์เซอร์ รายการจะหาย</p>
           </div>
         </details>
         <datalist id="plist"></datalist>
@@ -280,6 +289,7 @@ footer { padding-bottom: 8px; }
   <section class="step" data-step="2" aria-labelledby="h2s" hidden>
     <h2 id="h2s" class="vh">ขั้น 2 เลือกเป้ากำไร</h2>
     <div class="panel costline"><span class="k" id="s2name">เมนู · ต้นทุน</span><span class="v"><b id="s2cost">0.00</b> <span class="sm">บาท/จาน</span></span></div>
+    <p class="note savemsg" id="saveMsg" aria-live="polite"></p>
     <div class="panel">
       <h3 class="lead">เมนูนี้อยู่หมวดไหน</h3>
       <select id="cat" hidden>
@@ -520,12 +530,24 @@ footer { padding-bottom: 8px; }
     pck: { label: 'ชิ้น (ซื้อเป็น กก.)', price: 'ราคา (บาท ต่อ กก.)', qty: 'จำนวนที่ใช้ (ชิ้น)' }
   };
   var PL_KEY = 'pricing.priceList.v1', pl = {};
-  function plLoad() { try { var t = localStorage.getItem(PL_KEY); pl = t ? JSON.parse(t) : {}; } catch (e) { pl = {}; } }
+  function plLoad() {
+    try { var t = localStorage.getItem(PL_KEY); pl = t ? JSON.parse(t) : {}; } catch (e) { pl = {}; }
+    Object.keys(pl).forEach(function (k) { if (typeof pl[k] === 'number') pl[k] = { p: pl[k] }; });
+  }
+  var UL = { g: 'บาท/กก.(ลิตร)', pc: 'บาท/ชิ้น', pck: 'บาท/กก.' };
+  function plLabel(e) { return f2(e.p) + ' ' + (UL[e.u] || 'บาท') + (e.u === 'pck' && n0(e.k) > 0 ? ' · ' + e.k + ' ชิ้น/กก.' : ''); }
+  function plManageRender() {
+    var keys = Object.keys(pl);
+    $('plManage').innerHTML = keys.map(function (k, i) {
+      return '<div class="pl-item"><span class="nm">' + esc(k) + '</span><span class="pr">' + plLabel(pl[k]) + ' <button type="button" class="del" data-pldel="' + i + '" aria-label="ลบ ' + esc(k) + '">ลบ</button></span></div>';
+    }).join('');
+  }
   function plSave() { try { localStorage.setItem(PL_KEY, JSON.stringify(pl)); } catch (e) {} }
   function plRender() {
     var keys = Object.keys(pl);
     $('plCount').textContent = keys.length;
     $('plist').innerHTML = keys.map(function (k) { return '<option value="' + esc(k) + '"></option>'; }).join('');
+    plManageRender();
   }
   function plParse(text) {
     var added = 0, skipped = 0;
@@ -541,7 +563,7 @@ footer { padding-bottom: 8px; }
       var price = parseFloat(String(parts[parts.length - 1]).replace(/,/g, '').replace(/"/g, ''));
       var name = parts.slice(0, -1).join(' ').replace(/"/g, '').trim();
       if (!name || !isFinite(price) || price < 0) { skipped++; return; }
-      pl[name] = price; added++;
+      pl[name] = { p: price, u: pl[name] && pl[name].u, k: pl[name] && pl[name].k }; added++;
     });
     return { added: added, skipped: skipped };
   }
@@ -604,7 +626,7 @@ footer { padding-bottom: 8px; }
     ings.forEach(function (r, i) {
       var e = $('ing-res-' + i); if (e) e.textContent = f2(ingBatch(r));
       var sv = $('ing-save-' + i);
-      if (sv) { var nm = String(r.name || '').trim(); sv.hidden = !(nm && n0(r.price) > 0 && pl[nm] !== n0(r.price)); }
+      if (sv) { var nm = String(r.name || '').trim(); sv.hidden = !(nm && n0(r.price) > 0 && !(pl[nm] && pl[nm].p === n0(r.price))); }
     });
     oths.forEach(function (r, i) { var e = $('oth-res-' + i); if (e) e.textContent = f2(othCost(r)); });
     var t = sums(), sv0 = servings();
@@ -630,9 +652,17 @@ footer { padding-bottom: 8px; }
       if (k === 'name') {
         var nm = t.value.trim();
         if (Object.prototype.hasOwnProperty.call(pl, nm)) {
-          arr[i].price = String(pl[nm]); arr[i].fromList = true;
-          var pi = document.querySelector('[data-l="ing"][data-i="' + i + '"][data-k="price"]');
-          if (pi) pi.value = arr[i].price;
+          var en = pl[nm];
+          arr[i].price = String(en.p); arr[i].fromList = true;
+          if (en.u && (en.u !== arr[i].unit || (en.u === 'pck' && String(en.k || '') !== String(arr[i].pcsKg)))) {
+            arr[i].unit = en.u; arr[i].pcsKg = en.k ? String(en.k) : '';
+            renderIngs();
+            var nin = document.querySelector('[data-l="ing"][data-i="' + i + '"][data-k="name"]');
+            if (nin) { nin.focus(); nin.setSelectionRange(nin.value.length, nin.value.length); }
+          } else {
+            var pi = document.querySelector('[data-l="ing"][data-i="' + i + '"][data-k="price"]');
+            if (pi) pi.value = arr[i].price;
+          }
         } else { arr[i].fromList = false; }
         var fl = $('ing-fl-' + i); if (fl) fl.textContent = arr[i].fromList ? '· จากรายการ' : '';
       } else if (k === 'price') {
@@ -656,7 +686,7 @@ footer { padding-bottom: 8px; }
     var sv = e.target.closest('[data-save]');
     if (sv) {
       var r = ings[parseInt(sv.getAttribute('data-save'), 10)];
-      pl[String(r.name).trim()] = n0(r.price); r.fromList = true;
+      pl[String(r.name).trim()] = { p: n0(r.price), u: r.unit, k: r.pcsKg }; r.fromList = true;
       plSave(); plRender(); renderIngs(); refreshCost();
     }
   }
@@ -679,7 +709,7 @@ footer { padding-bottom: 8px; }
     $('plMsg').textContent = r.added ? 'นำเข้า ' + r.added + ' รายการ' + (r.skipped ? ' · ข้าม ' + r.skipped + ' แถวที่อ่านไม่ได้ (เช่น หัวตาราง)' : '') : 'ไม่พบรายการที่นำเข้าได้ ต้องมีชื่อและราคา คั่นด้วยแท็บหรือคอมมา';
     if (r.added) $('plPaste').value = '';
     // เติมราคาให้แถวที่ชื่อตรงกับรายการและยังไม่ได้กรอกราคา
-    ings.forEach(function (row) { var nm = String(row.name).trim(); if (!n0(row.price) && Object.prototype.hasOwnProperty.call(pl, nm)) { row.price = String(pl[nm]); row.fromList = true; } });
+    ings.forEach(function (row) { var nm = String(row.name).trim(); if (!n0(row.price) && Object.prototype.hasOwnProperty.call(pl, nm)) { row.price = String(pl[nm].p); row.fromList = true; } });
     renderIngs(); refreshCost();
   });
   $('plClear').addEventListener('click', function () {
@@ -722,7 +752,37 @@ footer { padding-bottom: 8px; }
     window.scrollTo(0, 0);
     var h = document.querySelector('.step[data-step="' + n + '"] h2'); if (h) { h.tabIndex = -1; h.focus({ preventScroll: true }); }
   }
+  function saveIngs() {
+    var n = 0;
+    if (mode !== 'detail') return 0;
+    ings.forEach(function (r) {
+      var nm = String(r.name || '').trim();
+      if (!nm || n0(r.price) <= 0 || nm.indexOf('(ตัวอย่าง)') >= 0) return;
+      var old = pl[nm];
+      if (!old || old.p !== n0(r.price) || old.u !== r.unit || String(old.k || '') !== String(r.pcsKg || '')) n++;
+      pl[nm] = { p: n0(r.price), u: r.unit, k: r.pcsKg };
+      r.fromList = true;
+    });
+    if (n) { plSave(); plRender(); }
+    return n;
+  }
+  $('plManage').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-pldel]'); if (!b) return;
+    var k = Object.keys(pl)[parseInt(b.getAttribute('data-pldel'), 10)];
+    delete pl[k]; plSave(); plRender(); renderIngs(); refreshCost();
+  });
+  $('plCopy').addEventListener('click', function () {
+    var txt = Object.keys(pl).map(function (k) { return k + '\t' + pl[k].p; }).join('\n');
+    var ok = function () { $('plMsg').textContent = 'คัดลอกแล้ว ' + Object.keys(pl).length + ' รายการ'; };
+    var no = function () { $('plMsg').textContent = 'คัดลอกอัตโนมัติไม่ได้ ให้ลองใหม่บนเบราว์เซอร์อื่น'; };
+    if (!txt) { $('plMsg').textContent = 'ยังไม่มีรายการให้คัดลอก'; return; }
+    try { navigator.clipboard.writeText(txt).then(ok, no); } catch (e) { no(); }
+  });
   $('nextBtn').addEventListener('click', function () {
+    if (cur === 1) {
+      var n = saveIngs();
+      $('saveMsg').textContent = n ? 'บันทึกราคาวัตถุดิบ ' + n + ' รายการไว้ใช้กับเมนูหน้า' : '';
+    }
     if (cur < 3) goStep(cur + 1);
     else { $('clearAll').click(); goStep(1); }
   });
