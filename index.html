@@ -220,6 +220,7 @@ footer { padding-bottom: 8px; }
 .pl-item .nm { min-width: 0; overflow-wrap: anywhere; } .pl-item .pr { color: var(--muted); font-size: 13px; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .pl-item .del { flex: none; }
 .savemsg { margin: -4px 2px 0; color: var(--accent); }
+.two.eq { grid-template-columns: 1fr 1fr; }
 </style>
 </head>
 <body>
@@ -309,6 +310,15 @@ footer { padding-bottom: 8px; }
       <p class="ref" id="ref"></p>
     </div>
 
+    <div class="panel">
+      <h3 class="lead">ช่วงราคาที่อยากขาย <span class="sm">(ไม่บังคับ)</span></h3>
+      <div class="two eq">
+        <div class="field"><label for="pmin">ราคาต่ำสุด (บาท)</label><input id="pmin" type="number" inputmode="decimal" step="any" min="0" placeholder="เช่น 199"></div>
+        <div class="field"><label for="pmax">ราคาสูงสุด (บาท)</label><input id="pmax" type="number" inputmode="decimal" step="any" min="0" placeholder="เช่น 249"></div>
+      </div>
+      <p class="note" id="pmsg">ใส่ช่วงราคาที่คิดไว้ ระบบจะแสดงกำไรที่ราคาต่ำสุด / กลาง / สูงสุด เว้นว่างถ้าจะใช้ราคาแนะนำตามหมวด</p>
+    </div>
+
     <h3 class="lead pad" id="rowsHint">เลือกราคาที่อยากขาย</h3>
     <div class="rows" id="rows"></div>
 
@@ -396,7 +406,7 @@ footer { padding-bottom: 8px; }
     coffee:  { name: 'กาแฟ', lo: 80, hi: 85 },
     other:   { name: 'หมวดนี้', lo: null, hi: null }
   };
-  var target = 69, cur = 1;
+  var target = 69, cur = 1, selPrice = null;
 
   function num(id) { var v = parseFloat($(id).value); return isFinite(v) ? v : 0; }
   function f0(n) { return Math.round(n).toLocaleString('en-US'); }
@@ -448,24 +458,46 @@ footer { padding-bottom: 8px; }
     return list;
   }
   function priceFor(m, c) { return roundUp(c.ceff / (1 - m / 100) * (1 + c.vat)); }
+  function priceRange() {
+    var lo = num('pmin'), hi = num('pmax');
+    return lo > 0 && hi > lo ? { lo: lo, hi: hi } : null;
+  }
   function renderRows() {
     var c = ctx(), cg = cat();
-    var list = optList();
-    if (!list.some(function (o) { return o.m === target; })) target = list[1].m;
+    var pr = priceRange();
     var box = $('rows');
+    var msg = 'ใส่ช่วงราคาที่คิดไว้ ระบบจะแสดงกำไรที่ราคาต่ำสุด / กลาง / สูงสุด เว้นว่างถ้าจะใช้ราคาแนะนำตามหมวด';
+    if ((num('pmin') > 0 || num('pmax') > 0) && !pr) msg = 'ใส่ให้ครบทั้งสองช่อง และราคาสูงสุดต้องมากกว่าราคาต่ำสุด ตอนนี้ใช้ราคาแนะนำตามหมวดไปก่อน';
+    else if (pr) msg = 'ใช้ช่วงราคาของคุณ ลบตัวเลขออกถ้าจะกลับไปใช้ราคาแนะนำตามหมวด';
+    $('pmsg').textContent = msg;
     $('rowsHint').textContent = c.vatOn ? 'เลือกราคาที่อยากขาย (รวม VAT แล้ว)' : 'เลือกราคาที่อยากขาย';
     if (c.ceff <= 0) { box.innerHTML = '<p class="empty">กลับไปขั้น 1 กรอกต้นทุนก่อน</p>'; return; }
+    var list;
+    if (pr) {
+      var mid = Math.round((pr.lo + pr.hi) / 2);
+      list = [{ p: pr.lo, name: 'ต่ำสุด' }, { p: mid, name: 'กลาง', mid: true }, { p: pr.hi, name: 'สูงสุด' }].map(function (o) {
+        o.m = metrics(o.p, c).margin; return o;
+      });
+      if (!list.some(function (o) { return o.p === selPrice; })) selPrice = list[1].p;
+      target = metrics(selPrice, c).margin;
+    } else {
+      selPrice = null;
+      list = optList();
+      if (!list.some(function (o) { return o.m === target; })) target = list[1].m;
+    }
     box.innerHTML = list.map(function (o) {
-      var rd = priceFor(o.m, c);
+      var rd = pr ? o.p : priceFor(o.m, c);
       var x = metrics(rd, c);
-      return '<button type="button" class="row" data-m="' + o.m + '" data-p="' + rd + '" aria-pressed="' + (o.m === target) + '">' +
+      var on = pr ? o.p === selPrice : o.m === target;
+      var inR = cg.lo !== null && x.margin >= cg.lo - 0.05 && x.margin <= cg.hi + 0.05;
+      return '<button type="button" class="row" data-pm="' + (pr ? 1 : 0) + '" data-m="' + o.m + '" data-p="' + rd + '" aria-pressed="' + on + '">' +
         '<span class="price">' + f0(rd) + ' <span class="sm">บาท</span></span>' +
-        '<span><span class="tt">' + o.name + (o.mid && cg.lo !== null ? '<span class="badge">กลางช่วง</span>' : '') + '</span>' +
+        '<span><span class="tt">' + o.name + (!pr && o.mid && cg.lo !== null ? '<span class="badge">กลางช่วง</span>' : '') + (pr && inR ? '<span class="badge">อยู่ในช่วงอ้างอิง</span>' : '') + '</span>' +
         '<span class="detail">กำไร ' + f1(x.margin) + '% · ได้ ' + f0(x.profit) + ' บาท/จาน · ต้นทุน ' + f1(x.costPct) + '%</span></span>' +
         '</button>';
     }).join('');
   }
-  function applyPrice() { var c = ctx(); $('price').value = c.ceff > 0 ? String(priceFor(target, c)) : ''; }
+  function applyPrice() { var c = ctx(); $('price').value = c.ceff > 0 ? String(selPrice || priceFor(target, c)) : ''; }
 
   function renderFinal() {
     var c = ctx(), cg = cat();
@@ -700,7 +732,7 @@ footer { padding-bottom: 8px; }
   $('clearAll').addEventListener('click', function () {
     ings = [blankIng()];
     oths = [{ name: 'ค่าไฟ', amount: '', basis: 'batch' }, { name: 'ค่าน้ำ', amount: '', basis: 'batch' }, { name: 'ค่าทำ (แรงงาน)', amount: '', basis: 'batch' }];
-    $('price').value = ''; $('menuName').value = '';
+    $('price').value = ''; $('menuName').value = ''; $('pmin').value = ''; $('pmax').value = ''; selPrice = null;
     renderIngs(); renderOths(); refreshCost();
   });
   $('plImport').addEventListener('click', function () {
@@ -792,6 +824,7 @@ footer { padding-bottom: 8px; }
     var b = e.target.closest('.row');
     if (!b) return;
     target = parseFloat(b.getAttribute('data-m'));
+    selPrice = b.getAttribute('data-pm') === '1' ? parseFloat(b.getAttribute('data-p')) : null;
     $('price').value = b.getAttribute('data-p');
     renderAll();
   });
@@ -816,7 +849,7 @@ footer { padding-bottom: 8px; }
   });
   $('vatOn').addEventListener('change', function () { $('vatBox').hidden = !this.checked; renderAll(); });
   $('delOn').addEventListener('change', function () { $('delBox').hidden = !this.checked; renderAll(); });
-  ['cost', 'round', 'oh', 'vatPct', 'delPct', 'price'].forEach(function (id) { $(id).addEventListener('input', renderAll); });
+  ['cost', 'round', 'oh', 'vatPct', 'delPct', 'price', 'pmin', 'pmax'].forEach(function (id) { $(id).addEventListener('input', renderAll); });
   $('round').addEventListener('change', renderAll);
 
   renderIngs(); renderOths();
